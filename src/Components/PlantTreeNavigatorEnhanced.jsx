@@ -93,7 +93,7 @@ const PlantTreeNavigatorEnhanced = () => {
       setLoading(prev => ({ ...prev, roots: true }));
       setError(null);
 
-      const response = await axios.get('http://localhost:3001/api/plants/roots');
+      const response = await axios.get('https://kpi-form.azurewebsites.net/api/plants/roots');
       setRootPlants(response.data);
 
       // Calculate initial stats
@@ -285,7 +285,7 @@ const PlantTreeNavigatorEnhanced = () => {
 
           // Fetch indicators for the new week
           const indicatorsResponse = await axios.get(
-            `http://localhost:3001/api/plants/${lastPlant.plant_id}/indicators?week=${newWeek}`
+            `https://kpi-form.azurewebsites.net/api/plants/${lastPlant.plant_id}/indicators?week=${newWeek}`
           );
           setIndicators(indicatorsResponse.data);
 
@@ -345,7 +345,7 @@ const PlantTreeNavigatorEnhanced = () => {
       // 1. Fetch child plants
       console.log('Fetching child plants for plant ID:', plant.plant_id);
       const childrenResponse = await axios.get(
-        `http://localhost:3001/api/plants/${plant.plant_id}/children`
+        `https://kpi-form.azurewebsites.net/api/plants/${plant.plant_id}/children`
       );
 
       console.log('Child plants response:', childrenResponse.data);
@@ -359,7 +359,7 @@ const PlantTreeNavigatorEnhanced = () => {
         console.log('No child plants found, fetching indicators directly...');
         // No child plants - fetch indicators directly for this plant
         const indicatorsResponse = await axios.get(
-          `http://localhost:3001/api/plants/${plant.plant_id}/indicators?week=${currentWeek}`
+          `https://kpi-form.azurewebsites.net/api/plants/${plant.plant_id}/indicators?week=${currentWeek}`
         );
         setIndicators(indicatorsResponse.data);
 
@@ -396,7 +396,7 @@ const PlantTreeNavigatorEnhanced = () => {
       setLoading(prev => ({ ...prev, subtitles: true }));
 
       const promises = group.kpi_ids.map(kpi_id =>
-        axios.get(`http://localhost:3001/api/plants/${plantId}/indicators/${kpi_id}/subtitles?week=${currentWeek}`)
+        axios.get(`https://kpi-form.azurewebsites.net/api/plants/${plantId}/indicators/${kpi_id}/subtitles?week=${currentWeek}`)
           .then(res => res.data)
           .catch(() => [])
       );
