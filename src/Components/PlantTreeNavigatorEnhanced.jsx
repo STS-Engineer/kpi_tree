@@ -5,17 +5,21 @@ import {
   Search, User, Calendar,
   Home, BarChart3, Settings, Bell,
   TrendingUp,
-  Filter, Download,
+  Download,
   LayoutDashboard, FileText, Users,
   Target, AlertCircle, Loader,
-  RefreshCw, AlertTriangle, Database as DatabaseIcon,
+  AlertTriangle, Database as DatabaseIcon,
   Building, Factory, MapPin, Truck,        // Supply chain, logistics
   DollarSign,   // Finance, budget, cost
   Shield,       // Safety, compliance
   Package,      // Inventory, stock
   Wrench,       // Maintenance
   CheckCircle,  // Quality, defect
-  Star
+  Star,
+  TrendingDown,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Minus
 } from 'lucide-react';
 import ReactCountryFlag from "react-country-flag";
 import { X } from 'lucide-react';
@@ -26,7 +30,7 @@ const PlantTreeNavigatorEnhanced = () => {
   // State for UI
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentWeek, setCurrentWeek] = useState('2026-W6');
+  const [currentWeek, setCurrentWeek] = useState('2026-Week6');
 
   // State for hierarchical data
   const [loading, setLoading] = useState({
@@ -52,6 +56,8 @@ const PlantTreeNavigatorEnhanced = () => {
     totalResponsible: 0,
     dataPoints: 0
   });
+  const [performanceMap, setPerformanceMap] = useState({});
+  const [subtitlePerformanceMap, setSubtitlePerformanceMap] = useState({});
   const [showWeekPicker, setShowWeekPicker] = useState(false);
   const filteredIndicators = useMemo(() => {
     if (!indicatorFilter.trim()) return indicators;
@@ -80,6 +86,10 @@ const PlantTreeNavigatorEnhanced = () => {
     });
     return Object.values(groups);
   }, [filteredIndicators]);
+
+  const getGroupStatus = (group) => {
+    return performanceMap[group.title] || null;
+  };
 
   // Fetch root plants on component mount
   useEffect(() => {
@@ -110,6 +120,51 @@ const PlantTreeNavigatorEnhanced = () => {
     }
   };
 
+
+  const fetchPerformanceStatus = async (plantId, week) => {
+    try {
+      const response = await axios.get(
+        `https://kpi-form.azurewebsites.net/api/plants/${plantId}/performance?week=${week}`
+      );
+      const map = {};
+      response.data.forEach(row => {
+        const title = row.indicator_title;
+        if (!map[title]) {
+          map[title] = { status: row.performance_status, good_direction: row.good_direction, redCount: 0, greenCount: 0, total: 0 };
+        }
+        map[title].total += Number(row.count) || 1;
+        if (row.performance_status === 'RED') {
+          map[title].redCount += Number(row.count) || 1;
+          map[title].status = 'RED';
+        } else {
+          map[title].greenCount += Number(row.count) || 1;
+        }
+      });
+      setPerformanceMap(map);
+    } catch (err) {
+      console.error('Error fetching performance status:', err);
+    }
+  };
+
+  const fetchSubtitlePerformance = async (plantId, kpiIds, week) => {
+    try {
+      const promises = kpiIds.map(kpi_id =>
+        axios.get(`https://kpi-form.azurewebsites.net/api/plants/${plantId}/indicators/${kpi_id}/performance?week=${week}`)
+          .then(res => res.data).catch(() => [])
+      );
+      const results = await Promise.all(promises);
+      const map = {};
+      results.flat().forEach(row => {
+        map[`${row.kpi_id}_${row.responsible_id}`] = {
+          status: row.performance_status,
+          good_direction: row.good_direction,
+        };
+      });
+      setSubtitlePerformanceMap(map);
+    } catch (err) {
+      console.error('Error fetching subtitle performance:', err);
+    }
+  };
 
   // Excel Export Function
   const exportToExcel = () => {
@@ -301,7 +356,8 @@ const PlantTreeNavigatorEnhanced = () => {
           setExpandedGroups(new Set());
           setIndicatorSubtitles([]);
           setSelectedIndicatorGroup(null);
-
+          setSubtitlePerformanceMap({});
+          await fetchPerformanceStatus(lastPlant.plant_id, newWeek);
           setLoading(prev => ({ ...prev, indicators: false }));
         } catch (err) {
           console.error('Error fetching indicators for new week:', err);
@@ -336,6 +392,8 @@ const PlantTreeNavigatorEnhanced = () => {
 
     setChildPlants(newChildPlants);
     setIndicators([]);
+    setPerformanceMap({});
+    setSubtitlePerformanceMap({});
     setIndicatorSubtitles([]);
 
 
@@ -362,7 +420,7 @@ const PlantTreeNavigatorEnhanced = () => {
           `https://kpi-form.azurewebsites.net/api/plants/${plant.plant_id}/indicators?week=${currentWeek}`
         );
         setIndicators(indicatorsResponse.data);
-
+        await fetchPerformanceStatus(plant.plant_id, currentWeek);
         // Calculate distinct titles for totalIndicators
         const distinctTitles = new Set(indicatorsResponse.data.map(i => i.indicator_title)).size;
         setStats(prev => ({
@@ -403,7 +461,7 @@ const PlantTreeNavigatorEnhanced = () => {
 
       const results = await Promise.all(promises);
       setIndicatorSubtitles(results.flat());
-
+      await fetchSubtitlePerformance(plantId, group.kpi_ids, currentWeek);
       const newExpanded = new Set(expandedGroups);
       newExpanded.add(group.title);
       setExpandedGroups(newExpanded);
@@ -643,7 +701,17 @@ const PlantTreeNavigatorEnhanced = () => {
 
     return total;
   };
-  return (
+
+  const performanceSummary = useMemo(() => {
+    const values = Object.values(performanceMap);
+    return {
+      red: values.filter(v => v.status === 'RED').length,
+      green: values.filter(v => v.status === 'GREEN').length,
+      total: values.length
+    };
+  }, [performanceMap]);
+
+return (
     <div className="dashboard-layout">
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -694,14 +762,11 @@ const PlantTreeNavigatorEnhanced = () => {
               {renderBreadcrumb()}
             </div>
           </div>
-
           <div className="header-right">
-
             <button className="header-action">
               <Bell size={16} />
               <span>Notifications</span>
             </button>
-
           </div>
         </header>
 
@@ -726,10 +791,7 @@ const PlantTreeNavigatorEnhanced = () => {
                   <div className="week-picker-dropdown">
                     <div className="week-picker-header">
                       <span>Select Week</span>
-                      <button
-                        className="close-picker"
-                        onClick={() => setShowWeekPicker(false)}
-                      >
+                      <button className="close-picker" onClick={() => setShowWeekPicker(false)}>
                         <X size={16} />
                       </button>
                     </div>
@@ -762,7 +824,6 @@ const PlantTreeNavigatorEnhanced = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-
             </div>
           </div>
 
@@ -794,7 +855,35 @@ const PlantTreeNavigatorEnhanced = () => {
               </div>
             </div>
 
-        
+            {/* ← NEW: Performance summary cards */}
+            {performanceSummary.total > 0 && (
+              <>
+                <div className="stat-card stat-card-green small">
+                  <div className="stat-content">
+                    <div className="stat-label">
+                      <TrendingUp size={14} />
+                      On Target
+                    </div>
+                    <div className="stat-value">{performanceSummary.green}</div>
+                  </div>
+                  <div className="stat-icon-wrapper">
+                    <TrendingUp size={24} className="stat-icon" />
+                  </div>
+                </div>
+                <div className="stat-card stat-card-red small">
+                  <div className="stat-content">
+                    <div className="stat-label">
+                      <TrendingDown size={14} />
+                      Off Target
+                    </div>
+                    <div className="stat-value">{performanceSummary.red}</div>
+                  </div>
+                  <div className="stat-icon-wrapper">
+                    <TrendingDown size={24} className="stat-icon" />
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Error State */}
@@ -833,10 +922,9 @@ const PlantTreeNavigatorEnhanced = () => {
                   </div>
                 </div>
                 <div className="header-actions">
-
                   <button className="action-button" onClick={exportToExcel}>
                     <Download size={16} />
-                     Export to Excel
+                    Export to Excel
                   </button>
                 </div>
               </div>
@@ -892,8 +980,6 @@ const PlantTreeNavigatorEnhanced = () => {
               {/* Dynamic Child Plants Sections for Multiple Levels */}
               {selectedPath.map((plant, level) => {
                 const children = childPlants[plant.plant_id] || [];
-
-                // Don't render if no children (should show indicators instead)
                 if (children.length === 0) return null;
 
                 return (
@@ -908,13 +994,11 @@ const PlantTreeNavigatorEnhanced = () => {
                       {children.map((childPlant) => (
                         <div
                           key={childPlant.plant_id}
-                          className={`plant-card ${selectedPath[level + 1]?.plant_id === childPlant.plant_id ? 'selected' : ''
-                            }`}
+                          className={`plant-card ${selectedPath[level + 1]?.plant_id === childPlant.plant_id ? 'selected' : ''}`}
                           onClick={() => handlePlantClick(childPlant, level + 1)}
                         >
                           <div className="plant-icon">
                             {getPlantIcon(childPlant.name)}
-
                           </div>
                           <div className="plant-info">
                             <h4>{childPlant.name}</h4>
@@ -947,13 +1031,11 @@ const PlantTreeNavigatorEnhanced = () => {
                 );
               })}
 
-              {/* Indicators Section - Show for the last selected plant that has no children */}
+              {/* Indicators Section */}
               {selectedPath.length > 0 && (() => {
                 const lastPlant = selectedPath[selectedPath.length - 1];
                 const lastChildren = childPlants[lastPlant.plant_id] || [];
 
-
-                // Show indicators only if the last selected plant has no children
                 if (lastChildren.length === 0) {
                   return (
                     <div className="section-card">
@@ -963,7 +1045,20 @@ const PlantTreeNavigatorEnhanced = () => {
                         <span className="subtopics-count">
                           {filteredIndicators.length} {filteredIndicators.length !== indicators.length && `of ${indicators.length}`} indicators
                         </span>
+
+                        {/* ← NEW: Performance summary pill */}
+                        {performanceSummary.total > 0 && (
+                          <span className="performance-summary-pill">
+                            <span className="pill-green">
+                              <TrendingUp size={12} /> {performanceSummary.green} on target
+                            </span>
+                            <span className="pill-red">
+                              <TrendingDown size={12} /> {performanceSummary.red} off target
+                            </span>
+                          </span>
+                        )}
                       </h3>
+
                       {/* KPI Filter Bar */}
                       <div className="kpi-filter-bar">
                         <div className="filter-input-wrapper">
@@ -984,10 +1079,9 @@ const PlantTreeNavigatorEnhanced = () => {
                               <X size={16} />
                             </button>
                           )}
-
-
                         </div>
                       </div>
+
                       {loading.indicators ? (
                         <div className="loading-state">
                           <div className="loading-spinner"></div>
@@ -1001,128 +1095,184 @@ const PlantTreeNavigatorEnhanced = () => {
                         </div>
                       ) : (
                         <div className="indicators-grid">
-                          {groupedIndicators.map((group) => (
-                            <div
-                              key={group.title}
-                              className="indicator-card"
-                              onClick={() => handleGroupClick(group)}
-                            >
-                              {/* Card Header with Icon & Title */}
-                              <div className="indicator-card-header">
-                                <div className="indicator-card-icon"  >
-                                  {getIndicatorIcon(group.title)}
+                          {groupedIndicators.map((group) => {
+                            // ← NEW: derive performance for this group
+                            const perf = performanceMap[group.title];
+                            const isRed = perf?.status === 'RED';
+                            const isGreen = perf?.status === 'GREEN';
+
+                            return (
+                              <div
+                                key={group.title}
+                                className={`indicator-card ${isRed ? 'indicator-card--red' : ''} ${isGreen ? 'indicator-card--green' : ''}`}
+                                onClick={() => handleGroupClick(group)}
+                              >
+                                {/* ← NEW: Status strip at top of card */}
+                                {perf && (
+                                  <div className={`indicator-status-strip ${isRed ? 'strip-red' : 'strip-green'}`}>
+                                    {isGreen ? (
+                                      <><ArrowUpCircle size={14} /><span>On Target</span></>
+                                    ) : (
+                                      <><ArrowDownCircle size={14} /><span>Off Target</span></>
+                                    )}
+                                    {perf.redCount > 0 && perf.total > 1 && (
+                                      <span className="strip-count">{perf.redCount}/{perf.total} off</span>
+                                    )}
+                                  </div>
+                                )}
+
+                                {/* Card Header with Icon & Title */}
+                                <div className="indicator-card-header">
+                                  <div className="indicator-card-icon">
+                                    {getIndicatorIcon(group.title)}
+                                  </div>
+                                  <div className="indicator-card-title">
+                                    <h4>{formatIndicatorTitle(group.title)}</h4>
+                                  </div>
+                                  {/* Total Display */}
+                                  {expandedGroups.has(group.title) && indicatorSubtitles.length > 0 && (
+                                    <div className="indicator-total">
+                                      <span className="total-label">Total:</span>
+                                      <span className="total-value">
+                                        {calculateGroupTotal(group)}
+                                        <span className="total-unit">{group.unit}</span>
+                                      </span>
+                                    </div>
+                                  )}
                                 </div>
-                                <div className="indicator-card-title">
-                                  <h4>{formatIndicatorTitle(group.title)}</h4>
-                                </div>
-                                {/* Total Display */}
-                                {expandedGroups.has(group.title) && indicatorSubtitles.length > 0 && (
-                                  <div className="indicator-total">
-                                    <span className="total-label">Total:</span>
-                                    <span className="total-value">
-                                      {calculateGroupTotal(group)}
-                                      <span className="total-unit">{group.unit}</span>
+
+                                {/* Compact Meta Info */}
+                                <div className="indicator-card-meta">
+                                  <span className="meta-badge">{group.unit}</span>
+                                  <span className="meta-badge">
+                                    <User size={12} /> {group.responsible_count}
+                                  </span>
+                                  <span className="meta-badge">
+                                    <DatabaseIcon size={12} /> {group.value_count}
+                                  </span>
+                                  <span className="meta-badge">
+                                    <TrendingUp size={12} /> {group.good_direction}
+                                  </span>
+                                  {/* ← NEW: Inline status badge */}
+                                  {perf && (
+                                    <span className={`meta-badge meta-badge--status ${isRed ? 'meta-badge--red' : 'meta-badge--green'}`}>
+                                      {isGreen
+                                        ? <><TrendingUp size={12} /> GREEN</>
+                                        : <><TrendingDown size={12} /> RED</>
+                                      }
                                     </span>
+                                  )}
+                                </div>
+
+                                {/* Expand Button */}
+                                <div className="indicator-card-expand">
+                                  <button
+                                    className="expand-btn"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleGroupExpand(group.title);
+                                    }}
+                                  >
+                                    {expandedGroups.has(group.title) ? (
+                                      <ChevronDown size={20} />
+                                    ) : (
+                                      <ChevronRight size={20} />
+                                    )}
+                                  </button>
+                                </div>
+
+                                {/* Expanded Subtitle Table */}
+                                {expandedGroups.has(group.title) && (
+                                  <div className="subtitle-details">
+                                    {loading.subtitles && selectedIndicatorGroup?.title === group.title ? (
+                                      <div className="loading-state">
+                                        <Loader size={24} className="loading-spinner" />
+                                        <p>Loading details...</p>
+                                      </div>
+                                    ) : indicatorSubtitles.length === 0 ? (
+                                      <div className="empty-state">
+                                        <AlertCircle size={48} />
+                                        <h4>No Data Available</h4>
+                                        <p>No subtitle data found for this indicator.</p>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <h5>
+                                          <FileText size={18} />
+                                          Indicator Details
+                                        </h5>
+                                        <div className="subtitle-table">
+                                          <div className="table-header">
+                                            <div className="table-cell">Indicator Subtitle</div>
+                                            <div className="table-cell">Responsible Person</div>
+                                            <div className="table-cell">Current Value</div>
+                                            <div className="table-cell">Target</div>
+                                            {/* ← NEW: Status column header */}
+                                            <div className="table-cell table-cell--status">Status</div>
+                                          </div>
+
+                                          {indicatorSubtitles
+                                            .filter(st => group.kpi_ids.includes(st.kpi_id))
+                                            .map((subtitle, idx) => {
+                                              // ← NEW: per-row performance
+                                              const perfKey = `${subtitle.kpi_id}_${subtitle.responsible_id}`;
+                                              const rowPerf = subtitlePerformanceMap[perfKey];
+                                              const rowIsRed = rowPerf?.status === 'RED';
+                                              const rowIsGreen = rowPerf?.status === 'GREEN';
+
+                                              return (
+                                                <div
+                                                  key={idx}
+                                                  className={`table-row ${rowIsRed ? 'row--red' : ''} ${rowIsGreen ? 'row--green' : ''}`}
+                                                >
+                                                  {/* Subtitle */}
+                                                  <div className="table-cell">
+                                                    {subtitle.indicator_subtitle || 'No subtitle'}
+                                                  </div>
+                                                  {/* Responsible */}
+                                                  <div className="table-cell">
+                                                    <div className="responsible-info">
+                                                      <User size={14} />
+                                                      <span>{subtitle.responsible_name || 'Unassigned'}</span>
+                                                    </div>
+                                                  </div>
+                                                  {/* Value */}
+                                                  <div className="table-cell">
+                                                    <div className="value-display">
+                                                      {subtitle.value !== null ? subtitle.value : 'No data'}
+                                                    </div>
+                                                  </div>
+                                                  {/* Target */}
+                                                  <div className="table-cell">
+                                                    {subtitle.target_snapshot || 'N/A'}
+                                                  </div>
+                                                  {/* ← NEW: Status cell */}
+                                                  <div className="table-cell table-cell--status">
+                                                    {rowPerf ? (
+                                                      <div className={`row-status-badge ${rowIsRed ? 'row-status--red' : 'row-status--green'}`}>
+                                                        {rowIsGreen ? (
+                                                          <><TrendingUp size={14} /><span>On Target</span></>
+                                                        ) : (
+                                                          <><TrendingDown size={14} /><span>Off Target</span></>
+                                                        )}
+                                                      </div>
+                                                    ) : (
+                                                      <span className="row-status-na">
+                                                        <Minus size={14} /> N/A
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
                                 )}
                               </div>
-
-                              {/* Compact Meta Info */}
-                              <div className="indicator-card-meta">
-                                <span className="meta-badge">{group.unit}</span>
-                                <span className="meta-badge">
-                                  <User size={12} /> {group.responsible_count}
-                                </span>
-                                <span className="meta-badge">
-                                  <DatabaseIcon size={12} /> {group.value_count}
-                                </span>
-                                <span className="meta-badge">
-                                  <TrendingUp size={12} /> {group.good_direction}
-                                </span>
-                              </div>
-
-                              {/* Expand Button (always visible) */}
-                              <div className="indicator-card-expand">
-                                <button
-                                  className="expand-btn"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleGroupExpand(group.title);
-                                  }}
-                                >
-                                  {expandedGroups.has(group.title) ? (
-                                    <ChevronDown size={20} />
-                                  ) : (
-                                    <ChevronRight size={20} />
-                                  )}
-                                </button>
-                              </div>
-
-                              {/* Expanded Subtitle Table (full width, appears below the card) */}
-                              {expandedGroups.has(group.title) && (
-                                <div className="subtitle-details">
-                                  {loading.subtitles && selectedIndicatorGroup?.title === group.title ? (
-                                    <div className="loading-state">
-                                      <Loader size={24} className="loading-spinner" />
-                                      <p>Loading details...</p>
-                                    </div>
-                                  ) : indicatorSubtitles.length === 0 ? (
-                                    <div className="empty-state">
-                                      <AlertCircle size={48} />
-                                      <h4>No Data Available</h4>
-                                      <p>No subtitle data found for this indicator.</p>
-                                    </div>
-                                  ) : (
-                                    <>
-                                      <h5>
-                                        <FileText size={18} />
-                                        Indicator Details
-                                      </h5>
-                                      <div className="subtitle-table">
-                                        <div className="table-header">
-                                          <div className="table-cell">Indicator Subtitle</div>
-                                          <div className="table-cell">Responsible Person</div>
-                                          <div className="table-cell">Current Value</div>
-                                          <div className="table-cell">Target</div>
-                                        </div>
-                                        {indicatorSubtitles
-                                          .filter(st => group.kpi_ids.includes(st.kpi_id))
-                                          .map((subtitle, idx) => (
-                                            <div key={idx} className="table-row">
-                                              {/* Subtitle */}
-                                              <div className="table-cell">
-                                                {subtitle.indicator_subtitle || 'No subtitle'}
-                                              </div>
-                                              {/* Responsible */}
-                                              <div className="table-cell">
-                                                <div className="responsible-info">
-                                                  <User size={14} />
-                                                  <span>{subtitle.responsible_name || 'Unassigned'}</span>
-                                                </div>
-
-                                              </div>
-
-                                              {/* Value */}
-                                              <div className="table-cell">
-                                                <div className="value-display">
-                                                  {subtitle.value !== null ? subtitle.value : 'No data'}
-
-                                                </div>
-                                              </div>
-                                              {/* Target */}
-                                              <div className="table-cell">
-                                                {subtitle.target_snapshot || 'N/A'}
-                                              </div>
-
-                                            </div>
-                                          ))}
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       )}
                     </div>
