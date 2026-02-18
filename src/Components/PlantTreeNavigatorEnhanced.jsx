@@ -729,9 +729,20 @@ return (
           <div className="nav-section">
             <div className="nav-title">Navigation</div>
             <div className="nav-items">
-              <button className="nav-item active">
+              <button
+                className={`nav-item ${location.pathname === '/' ? 'active' : ''}`}
+                onClick={() => navigate('/')}
+              >
                 <LayoutDashboard size={18} className="nav-icon" />
                 <span>Dashboard</span>
+              </button>
+
+              <button
+                className={`nav-item ${location.pathname === '/dashboard' ? 'active' : ''}`}
+                onClick={() => navigate('/dashboard')}
+              >
+                <BarChart3 size={18} className="nav-icon" />
+                <span>Statistics</span>
               </button>
             </div>
           </div>
