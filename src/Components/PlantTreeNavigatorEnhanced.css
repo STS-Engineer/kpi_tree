@@ -704,7 +704,7 @@ body {
 }
 
 .stat-value {
-  font-size: 56px;
+  font-size: 40px;
   font-weight: 900;
   line-height: 1;
   margin-bottom: 8px;
@@ -2097,6 +2097,17 @@ body {
 }
 .table-row:hover {
   background: rgba(139, 92, 246, 0.03);
+}
+
+.stat-card.purple {
+  background: linear-gradient(135deg, #9f8cbf 0%, #bc67dd 100%);
+  color: white;
+}
+
+.stat-card.purple .stat-label,
+.stat-card.purple .stat-value,
+.stat-card.purple .stat-icon {
+  color: white;
 }
 
 .table-row:last-child {
