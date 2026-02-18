@@ -31,7 +31,7 @@ const PlantTreeNavigatorEnhanced = () => {
   // State for UI
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [currentWeek, setCurrentWeek] = useState('2026-Week6');
+  const [currentWeek, setCurrentWeek] = useState('2026-Week7');
 
   // State for hierarchical data
   const [loading, setLoading] = useState({
@@ -88,9 +88,8 @@ const PlantTreeNavigatorEnhanced = () => {
     return Object.values(groups);
   }, [filteredIndicators]);
 
-  const getGroupStatus = (group) => {
-    return performanceMap[group.title] || null;
-  };
+
+
 
   // Fetch root plants on component mount
   useEffect(() => {
@@ -131,16 +130,36 @@ const PlantTreeNavigatorEnhanced = () => {
       response.data.forEach(row => {
         const title = row.indicator_title;
         if (!map[title]) {
-          map[title] = { status: row.performance_status, good_direction: row.good_direction, redCount: 0, greenCount: 0, total: 0 };
+          map[title] = {
+            status: 'GREEN',
+            good_direction: row.good_direction,
+            minimum_value: row.minimum_value,
+            maximum_value: row.maximum_value,
+            redCount: 0,
+            greenCount: 0,
+            total: 0,
+          };
         }
-        map[title].total += Number(row.count) || 1;
+        const count = Number(row.count) || 1;
+        map[title].total += count;
         if (row.performance_status === 'RED') {
-          map[title].redCount += Number(row.count) || 1;
-          map[title].status = 'RED';
-        } else {
-          map[title].greenCount += Number(row.count) || 1;
+          map[title].redCount += count;
+        } else if (row.performance_status === 'GREEN') {
+          map[title].greenCount += count;
         }
+        // NO_DATA rows counted in total but don't affect status
       });
+
+      // ✅ Set status AFTER counting all rows — majority wins
+      Object.values(map).forEach(item => {
+        if (item.redCount > item.greenCount) {
+          item.status = 'RED';
+        } else if (item.greenCount > 0 || item.redCount > 0) {
+          item.status = 'GREEN';
+        }
+        // else stays as NO_DATA/GREEN default
+      });
+
       setPerformanceMap(map);
     } catch (err) {
       console.error('Error fetching performance status:', err);
@@ -157,8 +176,12 @@ const PlantTreeNavigatorEnhanced = () => {
       const map = {};
       results.flat().forEach(row => {
         map[`${row.kpi_id}_${row.responsible_id}`] = {
-          status: row.performance_status,
+          status: row.performance_status,  // 'RED' | 'GREEN' | 'NO_DATA'
           good_direction: row.good_direction,
+          new_value: row.new_value,           // ← from hist26
+          target: row.target,              // ← from hist26
+          minimum_value: row.minimum_value,       // ← from Kpi table
+          maximum_value: row.maximum_value,       // ← from Kpi table
         };
       });
       setSubtitlePerformanceMap(map);
@@ -708,15 +731,16 @@ const PlantTreeNavigatorEnhanced = () => {
     return {
       red: values.filter(v => v.status === 'RED').length,
       green: values.filter(v => v.status === 'GREEN').length,
-      total: values.length
+      total: values.length,
     };
   }, [performanceMap]);
 
- // inside your component:
+
+
+  // inside your component:
   const navigate = useNavigate();
   const location = useLocation();
-
-return (
+  return (
     <div className="dashboard-layout">
       {/* Sidebar */}
       <div className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
@@ -1223,23 +1247,22 @@ return (
                                             <div className="table-cell">Responsible Person</div>
                                             <div className="table-cell">Current Value</div>
                                             <div className="table-cell">Target</div>
-                                            {/* ← NEW: Status column header */}
+                                            <div className="table-cell">Min / Max</div>
+                                            {/* ← Status column header */}
                                             <div className="table-cell table-cell--status">Status</div>
                                           </div>
 
                                           {indicatorSubtitles
                                             .filter(st => group.kpi_ids.includes(st.kpi_id))
                                             .map((subtitle, idx) => {
-                                              // ← NEW: per-row performance
                                               const perfKey = `${subtitle.kpi_id}_${subtitle.responsible_id}`;
                                               const rowPerf = subtitlePerformanceMap[perfKey];
                                               const rowIsRed = rowPerf?.status === 'RED';
-                                              const rowIsGreen = rowPerf?.status === 'GREEN';
 
                                               return (
                                                 <div
                                                   key={idx}
-                                                  className={`table-row ${rowIsRed ? 'row--red' : ''} ${rowIsGreen ? 'row--green' : ''}`}
+                                                  className={`table-row ${rowIsRed ? 'row--red' : 'row--green'}`}
                                                 >
                                                   {/* Subtitle */}
                                                   <div className="table-cell">
@@ -1252,25 +1275,34 @@ return (
                                                       <span>{subtitle.responsible_name || 'Unassigned'}</span>
                                                     </div>
                                                   </div>
-                                                  {/* Value */}
+                                                  {/* Current Value — new_value from hist26 */}
                                                   <div className="table-cell">
                                                     <div className="value-display">
-                                                      {subtitle.value !== null ? subtitle.value : 'No data'}
+                                                      {rowPerf?.new_value != null ? rowPerf.new_value : 'No data'}
                                                     </div>
                                                   </div>
-                                                  {/* Target */}
+                                                  {/* Target — target from hist26 */}
                                                   <div className="table-cell">
-                                                    {subtitle.target_snapshot || 'N/A'}
+                                                    {rowPerf?.target != null ? rowPerf.target : 'N/A'}
                                                   </div>
-                                                  {/* ← NEW: Status cell */}
+                                                  {/* Min / Max — from Kpi table */}
+                                                  <div className="table-cell">
+                                                    <span className="limit-badge">
+                                                      ↓{rowPerf?.minimum_value != null ? rowPerf.minimum_value : '—'}
+                                                    </span>
+                                                    {' / '}
+                                                    <span className="limit-badge">
+                                                      ↑{rowPerf?.maximum_value != null ? rowPerf.maximum_value : '—'}
+                                                    </span>
+                                                  </div>
+                                                  {/* Status */}
                                                   <div className="table-cell table-cell--status">
-                                                    {rowPerf ? (
+                                                    {rowPerf && rowPerf.status !== 'NO_DATA' ? (
                                                       <div className={`row-status-badge ${rowIsRed ? 'row-status--red' : 'row-status--green'}`}>
-                                                        {rowIsGreen ? (
-                                                          <><TrendingUp size={14} /><span>On Target</span></>
-                                                        ) : (
-                                                          <><TrendingDown size={14} /><span>Off Target</span></>
-                                                        )}
+                                                        {rowIsRed
+                                                          ? <><TrendingDown size={14} /><span>Off Target</span></>
+                                                          : <><TrendingUp size={14} /><span>On Target</span></>
+                                                        }
                                                       </div>
                                                     ) : (
                                                       <span className="row-status-na">
