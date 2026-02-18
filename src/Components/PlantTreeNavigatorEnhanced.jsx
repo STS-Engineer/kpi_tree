@@ -889,6 +889,21 @@ const PlantTreeNavigatorEnhanced = () => {
               </div>
             </div>
 
+            <div className="stat-card purple small">
+              <div className="stat-content">
+                <div className="stat-label" >
+                  <Calendar size={14} />
+                  Current Week
+                </div>
+                <div style={{color:'white', fontSize: '17px', fontWeight: 700}}>
+                  {currentWeek}
+                </div>
+              </div>
+              <div className="stat-icon-wrapper">
+                <Calendar size={24} className="stat-icon" />
+              </div>
+            </div>
+
             <div className="stat-card green small">
               <div className="stat-content">
                 <div className="stat-label">
@@ -901,6 +916,8 @@ const PlantTreeNavigatorEnhanced = () => {
                 <Target size={24} className="stat-icon" />
               </div>
             </div>
+
+
 
             {/* ← NEW: Performance summary cards */}
             {performanceSummary.total > 0 && (
