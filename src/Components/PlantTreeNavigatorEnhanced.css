@@ -2093,11 +2093,8 @@ body {
 }
 .table-header,
 .table-row {
-  display: grid;
-  grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr;
-  column-gap: 24px;   /* 👈 space between columns */
+  grid-template-columns: 2fr 1.5fr 1fr 1fr 0.8fr 0.8fr 1fr;
 }
-
 .table-row:hover {
   background: rgba(139, 92, 246, 0.03);
 }
