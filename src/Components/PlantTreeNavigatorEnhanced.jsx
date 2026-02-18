@@ -338,7 +338,7 @@ const PlantTreeNavigatorEnhanced = () => {
     for (let year = startYear; year <= currentYear; year++) {
       const weeksInYear = year === 2025 ? 52 : 10; // Adjust as needed
       for (let week = 1; week <= weeksInYear; week++) {
-        weeks.push(`${year}-W${week}`);
+        weeks.push(`${year}-Week${week}`);
       }
     }
 
@@ -351,24 +351,20 @@ const PlantTreeNavigatorEnhanced = () => {
     setCurrentWeek(newWeek);
     setShowWeekPicker(false);
 
-    // Refresh data for the selected week
     if (selectedPath.length > 0) {
       const lastPlant = selectedPath[selectedPath.length - 1];
       const lastChildren = childPlants[lastPlant.plant_id] || [];
 
-      // If the last plant has no children, it means we're showing indicators
-      // So we need to refresh the indicators for the new week
       if (lastChildren.length === 0) {
         try {
           setLoading(prev => ({ ...prev, indicators: true }));
 
-          // Fetch indicators for the new week
+          // 1. Fetch indicators for the new week
           const indicatorsResponse = await axios.get(
             `https://kpi-form.azurewebsites.net/api/plants/${lastPlant.plant_id}/indicators?week=${newWeek}`
           );
           setIndicators(indicatorsResponse.data);
 
-          // Calculate distinct titles for totalIndicators
           const distinctTitles = new Set(indicatorsResponse.data.map(i => i.indicator_title)).size;
           setStats(prev => ({
             ...prev,
@@ -376,15 +372,23 @@ const PlantTreeNavigatorEnhanced = () => {
             dataPoints: indicatorsResponse.data.reduce((sum, ind) => sum + (ind.value_count || 0), 0)
           }));
 
-          // Clear expanded groups and subtitles since we're changing weeks
-          setExpandedGroups(new Set());
-          setIndicatorSubtitles([]);
-          setSelectedIndicatorGroup(null);
-          setSubtitlePerformanceMap({});
+          // 2. Refresh performance status for new week
           await fetchPerformanceStatus(lastPlant.plant_id, newWeek);
+
+          // 3. If a group is expanded, re-fetch its subtitle data for the new week
+          if (selectedIndicatorGroup && expandedGroups.has(selectedIndicatorGroup.title)) {
+            setLoading(prev => ({ ...prev, subtitles: true }));
+            await fetchSubtitlesForGroup(selectedIndicatorGroup, lastPlant.plant_id, newWeek);
+            setLoading(prev => ({ ...prev, subtitles: false }));
+          } else {
+            // Nothing expanded — just clear stale data
+            setIndicatorSubtitles([]);
+            setSubtitlePerformanceMap({});
+          }
+
           setLoading(prev => ({ ...prev, indicators: false }));
         } catch (err) {
-          console.error('Error fetching indicators for new week:', err);
+          console.error('Error fetching data for new week:', err);
           setLoading(prev => ({ ...prev, indicators: false }));
         }
       }
@@ -472,20 +476,10 @@ const PlantTreeNavigatorEnhanced = () => {
     const lastPlant = selectedPath[selectedPath.length - 1];
     if (!lastPlant) return;
 
-    const plantId = lastPlant.plant_id;
-
     try {
       setLoading(prev => ({ ...prev, subtitles: true }));
+      await fetchSubtitlesForGroup(group, lastPlant.plant_id, currentWeek);
 
-      const promises = group.kpi_ids.map(kpi_id =>
-        axios.get(`https://kpi-form.azurewebsites.net/api/plants/${plantId}/indicators/${kpi_id}/subtitles?week=${currentWeek}`)
-          .then(res => res.data)
-          .catch(() => [])
-      );
-
-      const results = await Promise.all(promises);
-      setIndicatorSubtitles(results.flat());
-      await fetchSubtitlePerformance(plantId, group.kpi_ids, currentWeek);
       const newExpanded = new Set(expandedGroups);
       newExpanded.add(group.title);
       setExpandedGroups(newExpanded);
@@ -496,6 +490,19 @@ const PlantTreeNavigatorEnhanced = () => {
       setLoading(prev => ({ ...prev, subtitles: false }));
     }
   };
+
+  const fetchSubtitlesForGroup = async (group, plantId, week) => {
+    const promises = group.kpi_ids.map(kpi_id =>
+      axios.get(`https://kpi-form.azurewebsites.net/api/plants/${plantId}/indicators/${kpi_id}/subtitles?week=${week}`)
+        .then(res => res.data)
+        .catch(() => [])
+    );
+    const results = await Promise.all(promises);
+    setIndicatorSubtitles(results.flat());
+    await fetchSubtitlePerformance(plantId, group.kpi_ids, week);
+  };
+
+
   const toggleGroupExpand = (title) => {
     const newExpanded = new Set(expandedGroups);
     if (newExpanded.has(title)) newExpanded.delete(title);
@@ -998,17 +1005,6 @@ const PlantTreeNavigatorEnhanced = () => {
                         </div>
                         <div className="plant-info">
                           <h4>{plant.name}</h4>
-                          <p>{plant.manager || 'No manager assigned'}</p>
-                          <div className="plant-stats">
-                            <span className="stat-badge">
-                              <Users size={12} />
-                              {plant.responsible_count || 0} responsible
-                            </span>
-                            <span className="stat-badge">
-                              <Building size={12} />
-                              {plant.child_plant_count || 0} children
-                            </span>
-                          </div>
                         </div>
                         <ChevronRight size={20} className="chevron" />
                       </div>
@@ -1043,25 +1039,7 @@ const PlantTreeNavigatorEnhanced = () => {
                           <div className="plant-info">
                             <h4>{childPlant.name}</h4>
                             <p>{childPlant.manager || 'No manager assigned'}</p>
-                            <div className="plant-stats">
-                              <span className="stat-badge">
-                                <Users size={12} />
-                                {childPlant.responsible_count || 0} responsible
-                              </span>
-                              <span className="stat-badge">
-                                {childPlant.has_children ? (
-                                  <>
-                                    <Building size={12} />
-                                    Has children
-                                  </>
-                                ) : (
-                                  <>
-                                    <Target size={12} />
-                                    {childPlant.kpi_count || 0} KPIs
-                                  </>
-                                )}
-                              </span>
-                            </div>
+
                           </div>
                           <ChevronRight size={20} className="chevron" />
                         </div>
@@ -1183,16 +1161,7 @@ const PlantTreeNavigatorEnhanced = () => {
 
                                 {/* Compact Meta Info */}
                                 <div className="indicator-card-meta">
-                                  <span className="meta-badge">{group.unit}</span>
-                                  <span className="meta-badge">
-                                    <User size={12} /> {group.responsible_count}
-                                  </span>
-                                  <span className="meta-badge">
-                                    <DatabaseIcon size={12} /> {group.value_count}
-                                  </span>
-                                  <span className="meta-badge">
-                                    <TrendingUp size={12} /> {group.good_direction}
-                                  </span>
+
                                   {/* ← NEW: Inline status badge */}
                                   {perf && (
                                     <span className={`meta-badge meta-badge--status ${isRed ? 'meta-badge--red' : 'meta-badge--green'}`}>
@@ -1246,9 +1215,9 @@ const PlantTreeNavigatorEnhanced = () => {
                                             <div className="table-cell">Indicator Subtitle</div>
                                             <div className="table-cell">Responsible Person</div>
                                             <div className="table-cell">Current Value</div>
-                                            <div className="table-cell">Target</div>
-                                            <div className="table-cell">Min</div>
-                                            <div className="table-cell">Max</div>
+                                            <div className="table-cell">Target%</div>
+                                            <div className="table-cell">Min%</div>
+                                            <div className="table-cell">Max%</div>
                                             {/* ← Status column header */}
                                             <div className="table-cell table-cell--status">Status</div>
                                           </div>
