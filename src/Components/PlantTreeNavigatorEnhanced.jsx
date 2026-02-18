@@ -711,6 +711,10 @@ const PlantTreeNavigatorEnhanced = () => {
     };
   }, [performanceMap]);
 
+ // inside your component:
+  const navigate = useNavigate();
+  const location = useLocation();
+
 return (
     <div className="dashboard-layout">
       {/* Sidebar */}
