@@ -1247,13 +1247,19 @@ const PlantTreeNavigatorEnhanced = () => {
                                             <div className="table-cell">Responsible Person</div>
                                             <div className="table-cell">Current Value</div>
                                             <div className="table-cell">Target</div>
-                                            <div className="table-cell">Min / Max</div>
+                                            <div className="table-cell">Min</div>
+                                            <div className="table-cell">Max</div>
                                             {/* ← Status column header */}
                                             <div className="table-cell table-cell--status">Status</div>
                                           </div>
 
                                           {indicatorSubtitles
                                             .filter(st => group.kpi_ids.includes(st.kpi_id))
+                                            .filter(st => {
+                                              const perfKey = `${st.kpi_id}_${st.responsible_id}`;
+                                              const rowPerf = subtitlePerformanceMap[perfKey];
+                                              return rowPerf?.new_value != null;   // ← only show rows that have a value
+                                            })
                                             .map((subtitle, idx) => {
                                               const perfKey = `${subtitle.kpi_id}_${subtitle.responsible_id}`;
                                               const rowPerf = subtitlePerformanceMap[perfKey];
@@ -1288,11 +1294,12 @@ const PlantTreeNavigatorEnhanced = () => {
                                                   {/* Min / Max — from Kpi table */}
                                                   <div className="table-cell">
                                                     <span className="limit-badge">
-                                                      ↓{rowPerf?.minimum_value != null ? rowPerf.minimum_value : '—'}
+                                                      {rowPerf?.minimum_value != null ? rowPerf.minimum_value : '—'}
                                                     </span>
-                                                    {' / '}
+                                                  </div>
+                                                  <div className="table-cell">
                                                     <span className="limit-badge">
-                                                      ↑{rowPerf?.maximum_value != null ? rowPerf.maximum_value : '—'}
+                                                      {rowPerf?.maximum_value != null ? rowPerf.maximum_value : '—'}
                                                     </span>
                                                   </div>
                                                   {/* Status */}
