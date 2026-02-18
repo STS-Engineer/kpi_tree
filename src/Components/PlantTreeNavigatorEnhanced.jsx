@@ -25,6 +25,7 @@ import ReactCountryFlag from "react-country-flag";
 import { X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import './PlantTreeNavigatorEnhanced.css';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const PlantTreeNavigatorEnhanced = () => {
   // State for UI
