@@ -519,7 +519,6 @@ const PlantStatsDashboard = () => {
                     {/* ── Tabs ───────────────────────────────── */}
                     <div className="kpi-tabs" style={{ display: "flex", gap: 8, marginBottom: 24, flexWrap: "wrap" }}>
                         <TabBtn active={tab === "overview"} onClick={() => setTab("overview")} icon={BarChart3} label="Overview" />
-                        <TabBtn active={tab === "hierarchy"} onClick={() => setTab("hierarchy")} icon={Layers} label="Hierarchy" />
                         <TabBtn active={tab === "departments"} onClick={() => setTab("departments")} icon={Users} label="Departments" />
                     </div>
 
@@ -633,28 +632,7 @@ const PlantStatsDashboard = () => {
                     )}
 
 
-                    {/* ════ HIERARCHY ════════════════════════════════════════ */}
-                    {tab === "hierarchy" && (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: 20 }}>
-                            <div style={{ gridColumn: "span 5" }}>
-                                <Card title="Plants per Hierarchy Level" icon={Layers} accent={T.sky} idx={0}>
-                                    <ResponsiveContainer width="100%" height={230}><AreaChart data={levelData}><defs><linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor={T.sky} stopOpacity={0.15} /><stop offset="95%" stopColor={T.sky} stopOpacity={0} /></linearGradient></defs><CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} /><XAxis dataKey="name" tick={{ fill: T.textSub, fontSize: 12, fontWeight: 600 }} axisLine={false} tickLine={false} /><YAxis tick={{ fill: T.textSub, fontSize: 11 }} axisLine={false} tickLine={false} /><Tooltip content={<Tip />} /><Area type="monotone" dataKey="value" name="Plants" stroke={T.sky} strokeWidth={2.5} fill="url(#skyGrad)" dot={{ fill: T.sky, r: 5, strokeWidth: 2, stroke: T.white }} /></AreaChart></ResponsiveContainer>
-                                </Card>
-                            </div>
-                            <div style={{ gridColumn: "span 7" }}>
-                                <Card title="Root Plants Radar" icon={Activity} accent={T.violet} idx={1}>
-                                    <ResponsiveContainer width="100%" height={230}><RadarChart data={rootBarData}><PolarGrid stroke={T.border} /><PolarAngleAxis dataKey="name" tick={{ fill: T.textSub, fontSize: 11, fontWeight: 600 }} /><PolarRadiusAxis tick={{ fill: T.border, fontSize: 9 }} axisLine={false} /><Radar name="Responsible" dataKey="responsible" stroke={T.indigo} fill={T.indigo} fillOpacity={0.12} strokeWidth={2} dot={{ r: 3, fill: T.indigo }} /><Radar name="Children" dataKey="children" stroke={T.sky} fill={T.sky} fillOpacity={0.10} strokeWidth={2} dot={{ r: 3, fill: T.sky }} /><Legend wrapperStyle={{ fontSize: 12, color: T.textSub }} /><Tooltip content={<Tip />} /></RadarChart></ResponsiveContainer>
-                                </Card>
-                            </div>
-                            <div style={{ gridColumn: "span 12" }}>
-                                <Card title="Full Plant Hierarchy" icon={Building} accent={T.amber} idx={2}>
-                                    <div style={{ maxHeight: 420, overflowY: "auto" }}>
-                                        {hierarchy.map((p) => <div key={p.plant_id} style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", borderRadius: 10, borderBottom: `1px solid ${T.border}`, transition: "background 0.12s" }} onMouseEnter={e => e.currentTarget.style.background = T.slateL} onMouseLeave={e => e.currentTarget.style.background = "transparent"}><div style={{ width: p.level * 24, flexShrink: 0 }} />{p.level > 0 && <ChevronRight size={12} color="#CBD5E1" style={{ flexShrink: 0 }} />}<div style={{ width: 8, height: 8, borderRadius: 3, background: PIE_PALETTE[p.level % PIE_PALETTE.length], flexShrink: 0 }} /><div style={{ flex: 1, minWidth: 0 }}><span style={{ fontSize: 13, fontWeight: 700, color: T.text }}>{p.name}</span>{p.manager && <span style={{ fontSize: 11, color: T.textSub, marginLeft: 8 }}>· {p.manager}</span>}</div><span style={{ fontSize: 10, color: T.textSub, fontWeight: 700, textTransform: "uppercase", letterSpacing: 0.8, background: T.slateL, borderRadius: 5, padding: "2px 7px", border: `1px solid ${T.border}` }}>L{p.level}</span><span style={{ background: T.indigoL, color: T.indigo, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>{p.responsible_count} resp.</span><span style={{ background: T.skyL, color: T.sky, borderRadius: 20, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>{p.child_count} sub</span></div>)}
-                                    </div>
-                                </Card>
-                            </div>
-                        </div>
-                    )}
+                
 
                     {/* ════ DEPARTMENTS (new tab) ════════════════════════════ */}
                     {tab === "departments" && (
