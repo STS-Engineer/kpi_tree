@@ -342,7 +342,7 @@ const PlantTreeNavigatorEnhanced = () => {
       }
     }
 
-    return weeks.reverse();  // Most recent first
+    return weeks.reverse(); // Most recent first
   };
 
 
@@ -480,9 +480,8 @@ const PlantTreeNavigatorEnhanced = () => {
       setLoading(prev => ({ ...prev, subtitles: true }));
       await fetchSubtitlesForGroup(group, lastPlant.plant_id, currentWeek);
 
-      const newExpanded = new Set(expandedGroups);
-      newExpanded.add(group.title);
-      setExpandedGroups(newExpanded);
+      // ✅ Only this group stays open — all others close
+      setExpandedGroups(new Set([group.title]));
 
       setLoading(prev => ({ ...prev, subtitles: false }));
     } catch (err) {
@@ -505,21 +504,14 @@ const PlantTreeNavigatorEnhanced = () => {
 
   const toggleGroupExpand = (title) => {
     const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(title)) newExpanded.delete(title);
-    else newExpanded.add(title);
+    if (newExpanded.has(title)) {
+      newExpanded.delete(title); // collapse it
+    } else {
+      newExpanded.clear();       // close all others first
+      newExpanded.add(title);    // open only this one
+    }
     setExpandedGroups(newExpanded);
   };
-  const handleRefresh = () => {
-    if (selectedPath.length > 0) {
-      // Refresh the last selected plant
-      const lastPlant = selectedPath[selectedPath.length - 1];
-      const level = selectedPath.length - 1;
-      handlePlantClick(lastPlant, level);
-    } else {
-      fetchRootPlants();
-    }
-  };
-
 
 
   const getPlantIcon = (plantName) => {
@@ -895,7 +887,7 @@ const PlantTreeNavigatorEnhanced = () => {
                   <Calendar size={14} />
                   Current Week
                 </div>
-                <div style={{color:'white', fontSize: '17px', fontWeight: 700}}>
+                <div style={{ color: 'white', fontSize: '17px', fontWeight: 700 }}>
                   {currentWeek}
                 </div>
               </div>
