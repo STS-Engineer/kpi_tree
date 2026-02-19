@@ -342,7 +342,7 @@ const PlantTreeNavigatorEnhanced = () => {
       }
     }
 
-    return weeks.reverse(); // Most recent first
+    return weeks; // Most recent first
   };
 
 
