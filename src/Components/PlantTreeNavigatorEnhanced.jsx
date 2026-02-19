@@ -336,7 +336,7 @@ const PlantTreeNavigatorEnhanced = () => {
 
     // Generate weeks for 2025 and 2026
     for (let year = startYear; year <= currentYear; year++) {
-      const weeksInYear = year === 2025 ? 52 : 10; // Adjust as needed
+      const weeksInYear = year === 2025 ? 52 : 7; // Adjust as needed
       for (let week = 1; week <= weeksInYear; week++) {
         weeks.push(`${year}-Week${week}`);
       }
