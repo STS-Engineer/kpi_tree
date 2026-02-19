@@ -565,33 +565,8 @@ const PlantStatsDashboard = () => {
                                 </Card>
                             </div>
                             <div style={{ gridColumn: "span 12", borderTop: `2px dashed ${T.border}`, margin: "4px 0" }} />
-                            <div style={{ gridColumn: "span 12", display: "flex", alignItems: "center", gap: 10, marginBottom: -6 }}>
-                                <div style={{ background: `${T.emerald}14`, borderRadius: 10, padding: 8 }}><Activity size={17} color={T.emerald} strokeWidth={2.5} /></div>
-                                <h3 style={{ margin: 0, fontSize: 14, fontWeight: 700, color: T.text }}>Performance Summary — {currentWeek}</h3>
-                                {analyticsLoading && <RefreshCw size={13} color={T.indigo} style={{ animation: "spin 0.9s linear infinite", marginLeft: 6 }} />}
-                            </div>
-                            {[
-                                { col: 3, top: T.emerald, title: "Global Health", content: <><div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-2px", color: analyticsKPIs.globalHealth >= 70 ? T.emerald : analyticsKPIs.globalHealth >= 40 ? T.amber : T.coral, lineHeight: 1, marginBottom: 8 }}>{analyticsKPIs.globalHealth}%</div><HealthBar pct={analyticsKPIs.globalHealth} /><div style={{ marginTop: 12, display: "flex", gap: 14 }}><div><div style={{ fontSize: 18, fontWeight: 800, color: T.emerald }}>{fmt(analyticsKPIs.totalOn)}</div><div style={{ fontSize: 10, color: T.textSub, fontWeight: 600 }}>On Target</div></div><div><div style={{ fontSize: 18, fontWeight: 800, color: T.coral }}>{fmt(analyticsKPIs.totalOff)}</div><div style={{ fontSize: 10, color: T.textSub, fontWeight: 600 }}>Off Target</div></div></div></> },
-                            ].map((card, i) => (
-                                <div key={i} style={{ gridColumn: `span ${card.col}`, background: T.white, borderRadius: 16, padding: "18px 20px", border: `1px solid ${T.border}`, borderTop: `4px solid ${card.top}`, boxShadow: "0 4px 16px rgba(0,0,0,0.05)", animation: "fadeUp 0.5s ease both", animationDelay: `${0.28 + i * 0.06}s` }}>
-                                    <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>{card.title}</div>
-                                    {card.content}
-                                </div>
-                            ))}
-                            <div style={{ gridColumn: "span 3", background: T.white, borderRadius: 16, padding: "18px 20px", border: `1px solid ${T.border}`, borderTop: `4px solid ${T.coral}`, boxShadow: "0 4px 16px rgba(0,0,0,0.05)", animation: "fadeUp 0.5s ease both", animationDelay: "0.34s" }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Most Off-Target Plant</div>
-                                {analyticsKPIs.worstPlant ? <><div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 6 }}>{analyticsKPIs.worstPlant.plant_name}</div><div style={{ display: "flex", gap: 6, marginBottom: 8 }}><span style={{ background: T.coralL, color: T.coral, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{analyticsKPIs.worstPlant.off_target} off</span><span style={{ background: T.emeraldL, color: T.emerald, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{analyticsKPIs.worstPlant.on_target} on</span></div><HealthBar pct={Math.round(+analyticsKPIs.worstPlant.on_target / (+analyticsKPIs.worstPlant.on_target + +analyticsKPIs.worstPlant.off_target || 1) * 100)} /></> : <div style={{ color: T.textSub }}>—</div>}
-                            </div>
-                            <div style={{ gridColumn: "span 3", background: T.white, borderRadius: 16, padding: "18px 20px", border: `1px solid ${T.border}`, borderTop: `4px solid ${T.emerald}`, boxShadow: "0 4px 16px rgba(0,0,0,0.05)", animation: "fadeUp 0.5s ease both", animationDelay: "0.40s" }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Best Performing Plant</div>
-                                {analyticsKPIs.bestPlant ? <><div style={{ fontSize: 15, fontWeight: 800, color: T.text, marginBottom: 6 }}>{analyticsKPIs.bestPlant.plant_name}</div><div style={{ display: "flex", gap: 6, marginBottom: 8 }}><span style={{ background: T.emeraldL, color: T.emerald, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{analyticsKPIs.bestPlant.on_target} on</span><span style={{ background: T.coralL, color: T.coral, borderRadius: 20, padding: "3px 10px", fontSize: 11, fontWeight: 700 }}>{analyticsKPIs.bestPlant.off_target} off</span></div><HealthBar pct={Math.round(+analyticsKPIs.bestPlant.on_target / (+analyticsKPIs.bestPlant.on_target + +analyticsKPIs.bestPlant.off_target || 1) * 100)} /></> : <div style={{ color: T.textSub }}>—</div>}
-                            </div>
-                            <div style={{ gridColumn: "span 3", background: T.white, borderRadius: 16, padding: "18px 20px", border: `1px solid ${T.border}`, borderTop: `4px solid ${T.slate}`, boxShadow: "0 4px 16px rgba(0,0,0,0.05)", animation: "fadeUp 0.5s ease both", animationDelay: "0.46s" }}>
-                                <div style={{ fontSize: 10, fontWeight: 700, color: T.textSub, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 6 }}>Coverage</div>
-                                <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-2px", color: T.text, lineHeight: 1, marginBottom: 4 }}>{plantPerf.length}</div>
-                                <div style={{ fontSize: 12, color: T.textSub, fontWeight: 500 }}>plants reporting</div>
-                                <div style={{ marginTop: 8, fontSize: 12, color: T.slate, fontWeight: 600 }}>{fmt(analyticsKPIs.totalNoData)} missing data points</div>
-                            </div>
+                         
+                        
                         </div>
                     )}
 
