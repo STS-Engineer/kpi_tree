@@ -500,16 +500,24 @@ const PlantStatsDashboard = () => {
                     </div>
                 </div>
 
-                <div className="kpi-page-body" style={{ padding: "28px 32px", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
+                    <div className="kpi-page-body" style={{ padding: "28px 32px", maxWidth: 1440, margin: "0 auto", width: "100%" }}>
 
-                    <div style={{ marginBottom: 28, animation: "fadeUp 0.4s ease both" }}>
+                       <div style={{ marginBottom: 28, animation: "fadeUp 0.4s ease both" }}>
                         <h1 style={{ fontSize: 28, fontWeight: 800, color: T.text, letterSpacing: "-1px", marginBottom: 4 }}>Plant Statistics</h1>
-                        <p style={{ fontSize: 13, color: T.textSub, fontWeight: 500 }}>Comprehensive performance analytics · {currentWeek}</p>
-                    </div>
+                          <p style={{ fontSize: 13, color: T.textSub, fontWeight: 500 }}>Comprehensive performance analytics · {currentWeek}</p>
+                        </div>
 
-                    {stats && (
-                        <div className="kpi-kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18, marginBottom: 28 }}>
-                            <KpiCard idx={0} icon={Globe} accent={T.indigo} accentLight={T.indigoL} label="Total Plants" value={stats.total_plants} sub={`${stats.root_plants} root · ${stats.child_plants} child`} />
+                         {stats && (
+                             <div className="kpi-kpi-grid" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 18, marginBottom: 28 }}>
+                              <KpiCard
+                                idx={0}
+                                icon={Globe}
+                                accent={T.indigo}
+                                accentLight={T.indigoL}
+                                label="Total Plants"
+                                value={11}
+                                sub="4 root · 8 child"
+                              />
                             <KpiCard idx={1} icon={Target} accent={T.violet} accentLight={T.violetL} label="Total KPIs" value={stats.total_kpis} sub="Indicators defined" />
                             <KpiCard idx={2} icon={Users} accent={T.emerald} accentLight={T.emeraldL} label="Responsible Persons" value={stats.total_responsible} sub={`${stats.total_departments} departments`} />
                             <KpiCard idx={3} icon={Database} accent={T.amber} accentLight={T.amberL} label="Data Points" value={stats.total_kpi_values} sub={`${stats.total_weeks} weeks tracked`} />
